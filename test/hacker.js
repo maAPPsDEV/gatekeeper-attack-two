@@ -1,4 +1,5 @@
 const Hacker = artifacts.require("Hacker");
+const GatekeeperTwo = artifacts.require("GatekeeperTwo");
 const { expect } = require("chai");
 const { BN } = require("@openzeppelin/test-helpers");
 
@@ -8,8 +9,9 @@ const { BN } = require("@openzeppelin/test-helpers");
  * See docs: https://www.trufflesuite.com/docs/truffle/testing/writing-tests-in-javascript
  */
 contract("Hacker", function ([_owner, _hacker]) {
-  it("should assert true", async function () {
-    const hackerContract = await Hacker.deployed();
-    return assert.isTrue(true);
+  it("should enter", async function () {
+    const targetContract = await GatekeeperTwo.new();
+    const hackerContract = await Hacker.new(targetContract.address, { from: _hacker });
+    expect(await targetContract.entrant()).to.be.equal(_hacker);
   });
 });

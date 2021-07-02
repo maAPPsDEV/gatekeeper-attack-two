@@ -14,7 +14,6 @@ _Hint:_
 2. The `assembly` keyword in the second gate allows a contract to access functionality that is not native to vanilla Solidity. See [here](http://solidity.readthedocs.io/en/v0.4.23/assembly.html) for more information. The `extcodesize` call in this gate will get the size of a contract's code at a given address - you can learn more about how and when this is set in section 7 of the [yellow paper](https://ethereum.github.io/yellowpaper/paper.pdf).
 3. The `^` character in the third gate is a bitwise operation (XOR), and is used here to apply another common bitwise operation (see [here](http://solidity.readthedocs.io/en/v0.4.23/miscellaneous.html#cheatsheet)). The Coin Flip level is also a good place to start when approaching this challenge.
 
-
 ## What will you learn?
 
 1. `CODESIZE` vs `EXTCODESIZE`
@@ -73,25 +72,33 @@ Solidity supports the following logic gate operations:
 
 ```solidity
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.6.0;
+pragma solidity >=0.6.5 <0.9.0;
 
-contract Token {
-  mapping(address => uint256) balances;
-  uint256 public totalSupply;
+contract GatekeeperTwo {
+  address public entrant;
 
-  constructor(uint256 _initialSupply) public {
-    balances[msg.sender] = totalSupply = _initialSupply;
+  modifier gateOne() {
+    require(msg.sender != tx.origin);
+    _;
   }
 
-  function transfer(address _to, uint256 _value) public returns (bool) {
-    require(balances[msg.sender] - _value >= 0);
-    balances[msg.sender] -= _value;
-    balances[_to] += _value;
+  modifier gateTwo() {
+    uint256 x;
+    assembly {
+      x := extcodesize(caller())
+    }
+    require(x == 0);
+    _;
+  }
+
+  modifier gateThree(bytes8 _gateKey) {
+    require(uint64(bytes8(keccak256(abi.encodePacked(msg.sender)))) ^ uint64(_gateKey) == uint64(0) - 1);
+    _;
+  }
+
+  function enter(bytes8 _gateKey) public gateOne gateTwo gateThree(_gateKey) returns (bool) {
+    entrant = tx.origin;
     return true;
-  }
-
-  function balanceOf(address _owner) public view returns (uint256 balance) {
-    return balances[_owner];
   }
 }
 
@@ -122,8 +129,6 @@ truffle develop
 test
 ```
 
-You should take ownership of the target contract successfully.
-
 ```
 truffle(develop)> test
 Using network 'develop'.
@@ -136,9 +141,9 @@ Compiling your contracts...
 
 
   Contract: Hacker
-    √ should steal countless of tokens (377ms)
+    √ should enter (470ms)
 
 
-  1 passing (440ms)
+  1 passing (559ms)
 
 ```
